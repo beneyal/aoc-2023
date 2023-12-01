@@ -11,10 +11,11 @@ object day01 {
     }.sum
 
   def part2(input: Vector[String]): Int = {
-    val pat = """\d|one|two|three|four|five|six|seven|eight|nine""".r
+    val pat = """(?=(\d|one|two|three|four|five|six|seven|eight|nine))""".r
     input.map { line =>
-      val digits = line.tails.toVector
-        .flatMap(pat.findPrefixOf)
+      val digits = pat
+        .findAllMatchIn(line)
+        .map(_.group(1))
         .map {
           case "one"   => "1"
           case "two"   => "2"
@@ -27,6 +28,7 @@ object day01 {
           case "nine"  => "9"
           case d       => d
         }
+        .toVector
 
       s"${digits.head}${digits.last}".toInt
     }.sum
