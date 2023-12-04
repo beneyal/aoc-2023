@@ -1,4 +1,4 @@
 .bsp
 .metals
 .scala-build
-./src/main/resources/example.txt
+src/main/resources/example.txt
