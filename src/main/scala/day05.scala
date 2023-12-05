@@ -5,25 +5,7 @@ import zio.stream.*
 
 import scala.io.Source
 
-final case class Almanac(
-    seeds: Vector[Long],
-    seedToSoil: Long => Long,
-    soilToFertilizer: Long => Long,
-    fertilizerToWater: Long => Long,
-    waterToLight: Long => Long,
-    lightToTemperature: Long => Long,
-    temperatureToHumidity: Long => Long,
-    humidityToLocation: Long => Long
-) {
-  def seedToLocation(seed: Long): Long =
-    seedToSoil
-      .andThen(soilToFertilizer)
-      .andThen(fertilizerToWater)
-      .andThen(waterToLight)
-      .andThen(lightToTemperature)
-      .andThen(temperatureToHumidity)
-      .andThen(humidityToLocation)(seed)
-}
+final case class Almanac(seeds: Vector[Long], seedToLocation: Long => Long)
 
 def getInput(): Almanac = {
   def parseChunk(chunk: String) = {
@@ -44,33 +26,17 @@ def getInput(): Almanac = {
     (n: Long) => f(n).getOrElse(n)
   }
 
-  val chunks = Source.fromResource("05-input.txt").getLines().mkString("\n").split("\n\n")
-  val seeds  = chunks.head.split(": ")(1).split(" ").map(_.toLong).toVector
-  val Array(
-    seedToSoil,
-    soilToFertilizer,
-    fertilizerToWater,
-    waterToLight,
-    lightToTemperature,
-    temperatureToHumidity,
-    humidityToLocation
-  ) = chunks.tail.map(parseChunk)
-  Almanac(
-    seeds,
-    seedToSoil,
-    soilToFertilizer,
-    fertilizerToWater,
-    waterToLight,
-    lightToTemperature,
-    temperatureToHumidity,
-    humidityToLocation
-  )
+  val chunks         = Source.fromResource("05-input.txt").getLines().mkString("\n").split("\n\n")
+  val seeds          = chunks.head.split(": ")(1).split(" ").map(_.toLong).toVector
+  val seedToLocation = chunks.tail.map(parseChunk).foldLeft(identity[Long])(_ andThen _)
+
+  Almanac(seeds, seedToLocation)
 }
 
 @main def part1: Unit = {
   val almanac   = getInput()
   val locations = almanac.seeds.map(almanac.seedToLocation)
-  println(locations.min)
+  println(s"Part 1 Solution: ${locations.min}")
 }
 
 @main def part2: Unit = {
@@ -79,16 +45,13 @@ def getInput(): Almanac = {
   val zio = ZStream
     .fromIterable(seedGroups)
     .mapZIOPar(8) { sg =>
-      ZStream.fromIterable(sg(0) to sg(0) + sg(1)).runFold(Long.MaxValue) { case (min, seed) =>
-        val loc = almanac.seedToLocation(seed)
-        if (loc < min) loc else min
-      }
+      ZStream.fromIterable(sg(0) to sg(0) + sg(1)).runFold(Long.MaxValue)(_ min almanac.seedToLocation(_))
     }
-    .runFold(Long.MaxValue) { case (min, x) =>
-      if (x < min) x else min
-    }
+    .runFold(Long.MaxValue)(_ min _)
+
   val result = Unsafe.unsafe { implicit unsafe =>
     Runtime.default.unsafe.run(zio).getOrThrowFiberFailure()
   }
-  println(result)
+
+  println(s"Part 2 Solution: $result")
 }
