@@ -168,10 +168,6 @@ def findNumberOfButtonPressesForRx(
   val seen              = conjunctions(rxOrigin).map(_ -> false).toMap
   val initialState      = RxSearchState(flipFlopsState, conjunctionsState, presses, cycleLengths, seen)
 
-  1.to(4000).foldLeft(initialState) { case (state, _) =>
-    loop(q, state.copy(presses = state.presses + 1))
-  }
-
   Iterator
     .iterate(initialState)(state => loop(q, state.copy(presses = state.presses + 1)))
     .dropWhile(_.minPresses.isEmpty)
