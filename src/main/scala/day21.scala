@@ -33,8 +33,6 @@ extension (grid: Grid) {
 
 type Grid = Vector[Vector[Char]]
 
-final case class QueueState(pos: Position, steps: Int)
-
 final case class FiniteGridState(grid: Grid, seen: Set[Position]) {
   def nextState: FiniteGridState =
     copy(seen = seen.flatMap(_.neighbors).filter(_.inBounds(grid.size)).filter(grid(_) != '#'))
