@@ -70,8 +70,14 @@ def throwMagicalRock(hailstones: Vector[Hailstone]): String = {
   }
   val solver = z3.mkSolver()
   solver.assertCnstr(constraints)
-  val model = solver.checkAndGetAllModels().take(1).toVector.head
-  model.eval(z3.mkAdd(px, py, pz)).map(_.toString).getOrElse("No solution.")
+  solver
+    .check()
+    .flatMap { isModelAvailable =>
+      if (isModelAvailable) solver.getModel().eval(z3.mkAdd(px, py, pz))
+      else None
+    }
+    .map(_.toString)
+    .getOrElse("No solution.")
 }
 
 @main def part1(): Unit = {
